@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kashiki — Tombak yang Menolak Langit</title>
+    <style>
+        /* Mengimpor Font Google */
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #d4d4d4;
+            --accent-color: #c9a55c; /* Warna emas pudar */
+            --secondary-color: #555;
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --comment-bg: #111;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Lora', serif;
+            overflow: hidden; 
+            height: 100vh;
+            display: flex; /* Flex layout untuk membagi layar */
+        }
+
+        /* --- UI ELEMENTS (Lang Switch) --- */
+        .ui-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            gap: 15px;
+        }
+
+        .lang-btn {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--secondary-color);
+            color: var(--secondary-color);
+            padding: 5px 10px;
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+        }
+
+        .lang-btn.active, .lang-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* --- LAYAR INTRO (Overlay) --- */
+        #intro-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1.5s ease-out, visibility 1.5s;
+        }
+
+        .intro-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2.5rem;
+            letter-spacing: 0.3em;
+            color: var(--accent-color);
+            margin-bottom: 2rem;
+            text-align: center;
+            opacity: 0.8;
+            animation: breathe 3s infinite ease-in-out;
+            padding: 0 20px;
+        }
+
+        .enter-btn {
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 15px 40px;
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            text-transform: uppercase;
+        }
+
+        .enter-btn:hover {
+            background: var(--accent-color);
+            color: #000;
+            box-shadow: 0 0 15px rgba(201, 165, 92, 0.5);
+        }
+
+        .headphones-notice {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #555;
+            font-style: italic;
+        }
+
+        /* --- LAYOUT UTAMA (SPLIT SCREEN) --- */
+        
+        /* Kiri: Konten Cerita */
+        #story-panel {
+            flex: 2; /* Mengambil 2/3 layar */
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            padding: 0;
+            box-sizing: border-box;
+            border-right: 1px solid #222;
+        }
+
+        #main-container {
+            opacity: 0;
+            display: none; 
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 40px 100px 40px; 
+            line-height: 1.8;
+            transition: opacity 1s ease-in;
+        }
+
+        /* Kanan: Panel Komentar */
+        #comment-panel {
+            flex: 1; /* Mengambil 1/3 layar */
+            height: 100%;
+            background-color: var(--comment-bg);
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 1s ease-in;
+            display: none;
+        }
+
+        .comment-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            font-family: 'Cinzel', serif;
+            color: var(--accent-color);
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .comment-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .comment-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .comment-author {
+            font-family: 'Cinzel', serif;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .comment-text {
+            font-size: 0.95rem;
+            color: #ddd;
+            font-style: italic;
+        }
+
+        .comment-form-container {
+            padding: 20px;
+            border-top: 1px solid #333;
+            background: #0f0f0f;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: var(--input-bg);
+            border: 1px solid #444;
+            color: #fff;
+            font-family: 'Lora', serif;
+            box-sizing: border-box;
+        }
+
+        .comment-submit-btn {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            font-family: 'Cinzel', serif;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .comment-submit-btn:hover:not(:disabled) {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .comment-submit-btn:disabled {
+            border-color: #333;
+            color: #555;
+            cursor: wait;
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #555;
+            font-size: 0.8rem;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        /* --- COMMON STYLES --- */
+        .fade-out {
+            opacity: 0 !important;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-color);
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            font-family: 'Cinzel', serif;
+            color: #a0a0a0;
+            margin-top: 3rem;
+            font-size: 1.5rem;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .drop-cap {
+            float: left;
+            font-family: 'Cinzel', serif;
+            font-size: 3.5rem;
+            line-height: 0.8;
+            padding-right: 10px;
+            color: var(--accent-color);
+        }
+
+        /* --- FORM STYLES (MAIN STORY) --- */
+        .story-form {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #333;
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--accent-color);
+            font-family: 'Cinzel', serif;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--input-bg);
+            border: 1px solid #444;
+            color: #fff;
+            font-family: 'Lora', serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus, .form-select, .form-textarea:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            background: rgba(255,255,255,0.1);
+            box-shadow: 0 0 10px rgba(201, 165, 92, 0.1);
+        }
+
+        .form-select option {
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        /* --- TOMBOL NAVIGASI --- */
+        .nav-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 50px;
+            padding-bottom: 50px;
+            gap: 20px; 
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid #555;
+            color: #888;
+            padding: 12px 25px;
+            font-family: 'Cinzel', serif;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            min-width: 120px; 
+        }
+        
+        .nav-btn:disabled {
+            border-color: #333;
+            color: #444;
+            cursor: not-allowed;
+            letter-spacing: 2px;
+        }
+
+        .nav-btn:not(:disabled):hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            letter-spacing: 4px;
+        }
+
+        .next-btn {
+            border-color: #777;
+        }
+
+        /* --- KONTROL MUSIK --- */
+        #music-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px; 
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            color: #777;
+            padding: 10px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: color 0.3s;
+            font-size: 1.2rem;
+            z-index: 100;
+        }
+        
+        #music-toggle:hover {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        @keyframes breathe {
+            0%, 100% { text-shadow: 0 0 5px rgba(201, 165, 92, 0.2); }
+            50% { text-shadow: 0 0 20px rgba(201, 165, 92, 0.6); }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            body { flex-direction: column; overflow-y: auto; }
+            #story-panel { flex: none; width: 100%; height: auto; overflow: visible; }
+            #comment-panel { flex: none; width: 100%; height: auto; border-left: none; border-top: 1px solid #333; }
+            #main-container { padding: 40px 20px; }
+            .intro-title { font-size: 1.8rem; }
+            h1 { font-size: 2rem; }
+            .ui-controls { top: 10px; right: 10px; }
+            .nav-container { flex-direction: column-reverse; gap: 10px; }
+            .nav-btn { width: 100%; }
+            #music-toggle { bottom: 20px; left: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- UI Controls (Language) -->
+    <div class="ui-controls">
+        <button class="lang-btn active" id="lang-id" onclick="setLanguage('id')">ID</button>
+        <button class="lang-btn" id="lang-en" onclick="setLanguage('en')">EN</button>
+    </div>
+
+    <!-- AUDIO LIBRARY (Pastikan file mp3 ada di folder Music/) -->
+    <audio id="audio-bab-1" loop><source src="Music/Music_Bab_1.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-bab-2" loop><source src="Music/Music_Bab_2.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-bab-3" loop><source src="Music/Music_Bab_3.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-bab-4" loop><source src="Music/Music_Bab_4.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-bab-5" loop><source src="Music/Music_Bab_5.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-bab-6" loop><source src="Music/Music_Bab_6.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-bab-7" loop><source src="Music/Music_Bab_7.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-epilog" loop><source src="Music/Music_Epilog.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-intro" loop><source src="Music/Music_Bab_1.mp3" type="audio/mpeg"></audio>
+
+    <!-- LAYER 1: INTRO -->
+    <div id="intro-layer">
+        <div class="intro-title" id="intro-title-text">KASHIKI — TOMBAK YANG MENOLAK LANGIT</div>
+        <button class="enter-btn" id="btn-enter">MASUK KE DALAM MEMORI</button>
+        <div class="headphones-notice" id="headphone-text">🎧 Gerakkan mouse / sentuh layar untuk memulai ambience<br>Gunakan headphone untuk pengalaman terbaik</div>
+    </div>
+
+    <!-- LAYER 2: PANEL KIRI (CERITA) -->
+    <div id="story-panel">
+        <div id="main-container">
+            <div id="story-content">
+                <!-- Konten cerita diisi JS -->
+            </div>
+            
+            <div class="nav-container">
+                <button class="nav-btn" id="btn-back" style="display:none;">&larr; KEMBALI</button>
+                <button class="nav-btn next-btn" id="btn-next">HALAMAN SELANJUTNYA &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYER 3: PANEL KANAN (KOMENTAR) -->
+    <div id="comment-panel">
+        <div class="comment-header">DISKUSI TAKDIR</div>
+        
+        <div class="comment-list" id="comment-list-container">
+            <!-- Komentar akan dimuat di sini -->
+            <div class="loading-text" id="comments-loading">Memanggil jejak para pengembara...</div>
+        </div>
+
+        <div class="comment-form-container">
+            <input type="text" id="comm-name" class="comment-input" placeholder="Nama Anda (Opsional)">
+            <textarea id="comm-text" class="comment-input" rows="3" placeholder="Tuliskan jejakmu di sini..."></textarea>
+            <button class="comment-submit-btn" id="btn-submit-comment" onclick="submitComment()">KIRIM JEJAK</button>
+        </div>
+    </div>
+
+    <!-- KONTROL MUSIK -->
+    <div id="music-toggle" title="Music Control">🔊</div>
+
+    <script>
+        // ==========================================================
+        // KONFIGURASI DATABASE (WAJIB DIISI)
+        // ==========================================================
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUKrviT-fS2RO2oE69PLRMGoMVQhLHYGcqQHEktqa37UTe32LKoZImLcWCaeLwZCo5yA/exec        "; 
+        // Contoh: "https://script.google.com/macros/s/AKfycb.../exec"
+        // ==========================================================
+
+
+        // --- DATA CERITA LENGKAP ---
+        const storyData = {
+            id: {
+                intro: { title: "KASHIKI — TOMBAK YANG MENOLAK LANGIT", btn: "MASUK KE DALAM MEMORI", notice: "🎧 Gerakkan mouse untuk ambience • Gunakan headphone" },
+                pages: [
+                    {
+                        musicId: 'audio-bab-1',
+                        title: "PROLOG: Nama yang Tersisa",
+                        content: `<p><span class="drop-cap">D</span>unia tidak memberi waktu bagi anak itu untuk menangis.</p><p>Ia hanya ingat darah yang mengering di tanah, siulan panah di udara, dan tubuh orang tuanya yang jatuh satu per satu. Terlalu cepat untuk berteriak. Terlalu cepat untuk lari. Ia bersembunyi dan bertahan hidup—itu saja.</p><p>Sejak hari itu, ia hidup dengan satu pilihan: bertahan atau mati.</p><p>Ia mencuri. Ia merampas. Orang-orang menyebutnya bandit kecil, dan ia tidak peduli. Nama lebih baik daripada mati kelaparan.</p><p>Sampai suatu malam, ia tertangkap.</p><p>Sebagai tawanan, hidupnya nyaris berakhir—jika bukan karena seorang prajurit Mongol yang berhenti dan bertanya satu hal sederhana:</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">“Kau ingin hidup?”</p><p>Dari jawaban itulah segalanya berubah.</p><p>Anak tanpa nama itu diberi satu hal yang tidak pernah ia miliki: arah. Dan akhirnya, sebuah nama.</p><h2>Kashiki</h2><p>Bukan nama yang lembut. Bukan nama yang membawa harapan.</p><p>Nama yang lahir dari darah, dan bertahan di tengah badai.</p>`,
+                        btnNext: "Buka Bab I"
+                    },
+                    {
+                        musicId: 'audio-bab-1',
+                        title: "BAB I: Anak yang Memilih Bertahan",
+                        content: `<p><span class="drop-cap">A</span>nak itu bangun sebelum matahari. Bukan karena disiplin, bukan karena kebiasaan—melainkan karena lapar. Perutnya terasa kosong sejak semalam, dan dingin menggigit tulang. Ia menggulung tubuhnya di bawah reruntuhan gerobak kayu, lalu bangkit saat langit masih abu-abu.</p><p>Hari ini, ia harus makan.</p><p>Ia menyusuri pinggir pemukiman dengan langkah ringan. Tidak berlari. Tidak terburu-buru. Orang yang terburu-buru mudah terlihat. Ia belajar itu sejak lama.</p><p>Matanya mengamati tangan, ikat pinggang, kantong kain. Ia memilih orang yang tidak waspada. Pedagang yang terlalu sibuk. Prajurit yang terlalu percaya diri.</p><p>Seorang lelaki duduk bersandar di dinding, bau arak menyengat dari tubuhnya. Kantong rotinya menggantung terbuka. Anak itu mendekat. Satu langkah. Dua langkah. Tangannya bergerak cepat—</p><p>Genggaman keras mencengkeram pergelangan tangannya. "Dapat kau."</p><p>Ia meronta seketika. Menendang, menggigit, memukul dengan siku. Semua yang ia punya keluar tanpa pikir panjang. Namun tubuh kecil tidak pernah cukup. Ia terjatuh. Lututnya menghantam tanah. Nafasnya tersedak.</p><p>Orang-orang berkumpul. "Bandit kecil lagi." "Sudah berapa kali kita lihat yang seperti ini?" "Bunuh saja."</p><p>Tangan-tangan kasar mengikatnya. Tali menggesek kulit hingga perih. Ia tidak berteriak. Berteriak tidak mengubah apa pun. Ia diseret melewati salju tipis. Kepalanya terbentur batu kecil, tapi ia tetap sadar. Jika pingsan, ia bisa mati.</p><p>Kandang tawanan gelap dan sempit. Bau keringat dan besi tua memenuhi udara. Anak itu duduk di sudut, memeluk lututnya. Ia menghitung napas, menenangkan diri.</p><p>Hari pertama, ia tidak diberi makan. Hari kedua, hanya air. Hari ketiga, ia mulai mengamati.</p><p>Ia memperhatikan langkah penjaga, pergantian giliran, suara sepatu yang berbeda. Ia menghafal semuanya. Bertahan hidup selalu dimulai dari melihat.</p><p>Pada sore hari ketiga, seseorang berhenti di depan kandang. Seorang prajurit Mongol. Bukan penjaga. Bajunya lebih rapi, senjatanya terawat. Tatapannya tajam, tapi tidak dingin. Ia berjongkok, sejajar dengan mata anak itu.</p><p>“Kau mencuri,” katanya datar.</p><p>Anak itu menatap balik. Tidak menyangkal.</p><p>“Untuk makan?” Ia mengangguk.</p><p>Prajurit itu terdiam sejenak, lalu bangkit. Kunci berbunyi. Pintu kandang terbuka. “Keluar.”</p><p>Anak itu ragu. Dunia tidak pernah memberinya sesuatu tanpa harga. Tapi ia melangkah. Malam itu, ia makan sup hangat. Tangannya gemetar saat memegang mangkuk. Ia menunggu rasa sakit, tapi tidak datang.</p><p>Hari-hari berikutnya, hidupnya berubah perlahan. Ia tidak lagi dipukul. Tidak lagi diseret. Ia diajari berdiri dengan benar, berjalan tanpa membuang tenaga, dan memegang pisau tanpa melukai diri sendiri.</p><p>Prajurit itu tidak pernah menanyakan nama. Karena memang tidak ada.</p><p>Suatu hari, ia diberi sebatang kayu panjang. Beratnya pas. Seimbang. “Tombak,” kata prajurit itu singkat. “Untuk jarak dekat.”</p><p>Anak itu menggenggamnya erat. Untuk pertama kalinya, ia merasa punya sesuatu yang bisa diandalkan.</p><p>Malam itu, di dekat api unggun, prajurit itu berkata pelan, “Kau tidak harus jadi orang baik.”</p><p>Anak itu menatap api.</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">“Cukup jadi orang yang bertahan.”</p><p>Ia mengangguk. Dan tanpa ia sadari, untuk pertama kalinya sejak lama, ia tidak merasa sendirian.</p>`,
+                        btnNext: "Buka Bab II"
+                    },
+                    {
+                        musicId: 'audio-bab-2',
+                        title: "BAB II: Orang yang Memberi Nama",
+                        content: `<p><span class="drop-cap">P</span>rajurit itu tidak pernah memperkenalkan dirinya. Ia hanya ada—setiap pagi, setiap latihan, setiap kali anak itu terjatuh dan bangkit kembali. Tidak terlalu dekat, tapi juga tidak pernah jauh. Seperti bayangan yang memastikan ia tidak tersesat.</p><p>Hari-hari Kashiki—meski ia belum bernama—diisi dengan hal sederhana. Berlari membawa beban kecil. Mengayunkan tombak kayu sampai lengannya gemetar. Berdiri diam dalam waktu lama tanpa bergerak.</p><p>“Jangan melawan dengan marah,” kata prajurit itu suatu hari. “Marah membuat tanganmu berat.”</p><p>Anak itu mengangguk, meski belum sepenuhnya mengerti.</p><p>Ia belajar cepat. Tubuhnya kecil, tapi lentur. Gerakannya tidak indah, tapi efektif. Ia tidak menyerang membabi buta. Ia menunggu celah. Menyerang sekali, lalu mundur. Tombak terasa cocok di tangannya.</p><p>Namun, ada satu latihan yang selalu membuatnya berhenti. Busur.</p><p>Saat prajurit lain berlatih memanah, anak itu membeku. Setiap kali tali busur ditarik, setiap kali anak panah dilepaskan, dadanya terasa sesak. Napasnya pendek. Tangannya gemetar. Suatu hari, ia menjatuhkan busur itu dan mundur tanpa sadar.</p><p>Prajurit itu melihatnya. Ia tidak memaksa. Tidak menertawakan. Ia hanya menyuruh anak itu duduk. “Apa yang kau lihat?” tanyanya.</p><p>Anak itu menunduk lama, lalu menjawab pelan, “Panah.”</p><p>Itu cukup. Sejak hari itu, prajurit itu tidak pernah lagi memberinya busur. Ia mengganti latihan dengan tombak, pedang pendek, kapak kecil, bahkan tangan kosong. “Jika kau tidak bisa menyerang dari jauh,” katanya, “pastikan kau tak memberi jarak.”</p><p>Latihan menjadi lebih berat. Anak itu jatuh berkali-kali. Tangannya lecet. Bahunya memar. Tapi setiap kali ia bangkit, prajurit itu hanya mengangguk—seolah itu sudah cukup.</p><p>Malam-malam mereka jarang berbicara. Tapi kadang, di dekat api unggun, prajurit itu duduk di sampingnya. “Dunia ini tidak adil,” katanya suatu malam. “Dan perang tidak peduli pada luka.”</p><p>Anak itu menatap api. Bayangan panah melintas di kepalanya. “Aku tahu,” jawabnya pelan.</p><p>Waktu berlalu tanpa mereka sadari. Tubuh anak itu mengeras. Gerakannya lebih tajam. Ia tidak lagi hanya bertahan—ia mulai menguasai.</p><p>Suatu sore, setelah latihan panjang, prajurit itu berdiri di depannya. “Kau tidak bisa terus tanpa nama,” katanya.</p><p>Anak itu menatapnya, ragu. “Nama adalah arah,” lanjutnya. “Tanpa itu, kau akan kembali tersesat.”</p><p>Ia lalu mengucapkan satu kata. “Kashiki.”</p><p>Anak itu mengulanginya pelan. Kata itu terasa asing, tapi kuat.</p><p>“Itu namamu,” kata prajurit itu. “Nama untuk orang yang bertahan di tengah badai.”</p><h2>Kashiki</h2><p>Nama itu tidak menghapus masa lalu. Tidak menyembuhkan luka. Tapi memberi sesuatu yang lebih penting—alasan untuk melangkah ke depan.</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">Malam itu, Kashiki tidur dengan tombak di sisinya. Untuk pertama kalinya, ia tidak bermimpi buruk.</p>`,
+                        btnNext: "Buka Bab III"
+                    },
+                    {
+                        musicId: 'audio-bab-3',
+                        title: "BAB III: Nama yang Tersisa",
+                        content: `<p><span class="drop-cap">T</span>idak ada pasukan di dunia yang bergerak secepat pasukan Mongol.</p><p>Mereka datang tanpa aba-aba, seperti badai yang tidak menunggu izin langit. Dari padang rumput yang luas, mereka menyebar ke segala arah—membakar kota, mematahkan kerajaan, dan menghapus nama-nama lama dari peta. Tidak ada benteng yang cukup tinggi. Tidak ada pasukan yang cukup siap.</p><p>Sejak kecil, orang-orang Mongol dibesarkan di atas pelana. Anak-anak belajar memanah sebelum mereka bisa menulis nama sendiri. Kuda adalah kaki mereka. Busur adalah napas mereka. Dalam pertempuran, mereka tidak mencari kehormatan—mereka mencari kemenangan.</p><p>Mereka menyerang dari jarak jauh, memancing lawan untuk mengejar, lalu menghancurkan dari segala sisi. Mundur bukan tanda kalah. Itu adalah jebakan. Banyak pasukan musuh hancur bahkan sebelum pedang pertama beradu. Di medan perang, pasukan Mongol adalah gelombang. Cepat, luas, dan mematikan.</p><p>Namun di tengah gelombang itu, ada sesuatu yang tidak bergerak.</p><h2>Keshik</h2><p>Keshik bukan pasukan biasa. Mereka tidak dikirim untuk pengejaran. Tidak digunakan untuk menyapu sisa musuh. Mereka adalah pengawal pribadi Khan—pasukan yang berdiri paling dekat dengan pusat kekuasaan, dan karena itu, paling dekat dengan kematian.</p><p>Masuk ke Keshik bukan soal seberapa banyak musuh yang kau bunuh, tapi apakah kau bisa dipercaya berdiri di garis terakhir. Kesetiaan lebih penting daripada keberanian. Ketenangan lebih berharga daripada keganasan. Sebagian besar prajurit Keshik ahli busur dan pedang. Mereka bertarung seperti prajurit Mongol lain—cepat, presisi, tanpa ragu. Tapi yang membedakan mereka adalah satu hal: <strong>mereka tidak mundur.</strong></p><p>Jika pasukan Mongol adalah badai, maka Keshik adalah pusatnya—tenang, padat, dan menghancurkan apa pun yang terlalu dekat. Di sinilah Kashiki berdiri. Dan di sinilah namanya mulai berubah.</p><p>Hari Kashiki dipanggil, tidak ada upacara. Tidak ada terompet. Tidak ada sorak. Seorang perwira hanya menyebut namanya dengan nada datar dan menyuruhnya ikut. Itu saja.</p><p>Ia meninggalkan kamp lamanya tanpa menoleh. Tidak ada yang melambaikan tangan. Tidak ada yang bertanya ke mana ia pergi. Dalam pasukan Mongol, perpindahan adalah hal biasa. Yang tidak biasa adalah tujuannya. Ia berjalan melewati tenda-tenda yang lebih rapi, kuda-kuda yang lebih besar, dan prajurit-prajurit dengan armor terawat. Bau besi dan minyak senjata terasa lebih kuat di sini. Langkah-langkah lebih teratur. Suara lebih pelan. Bukan kamp biasa. Ini wilayah Keshik.</p><p>Kashiki berhenti di barisan luar. Tombaknya berada di tangan, seperti biasa. Tidak ada busur di punggungnya. Tidak ada tabung anak panah. Di antara prajurit Mongol, itu adalah pemandangan ganjil. Tatapan datang dari segala arah. Ada yang menilai. Ada yang tersenyum tipis. Ada yang hanya mengamati tanpa ekspresi.</p><p>“Mana busurnya?” “Dia bawa tongkat?” “Anak baru?” Tidak ada yang menegurnya langsung. Keshik tidak membuang tenaga untuk celaan.</p><p>Latihan dimulai tanpa penjelasan. Formasi bergerak cepat. Kuda melesat. Pasir terangkat. Anak panah dilepaskan hampir bersamaan, suara siulan tajam memecah udara. Langit seakan dipenuhi garis kematian.</p><p>Perut Kashiki mengeras. Ia tidak menutup telinga. Tidak berteriak. Ia bergerak. Saat panah pertama jatuh, ia sudah maju ke depan—menurunkan tubuh, memutar tombak, menjaga jarak sedekat mungkin dengan sasaran. Ia tahu satu hal sejak lama: selama ia dekat, panah tidak berarti apa-apa.</p><p>Seorang prajurit di belakangnya tersandung. Panah menghantam bahunya. Teriakan pecah. Darah mengalir di pasir. Kashiki tidak menoleh. Ia terus maju.</p><p>Latihan berakhir tanpa aba-aba. Prajurit-prajurit membubarkan diri seolah tidak ada yang terjadi. Yang terluka ditarik ke belakang. Yang lain kembali ke posisi masing-masing.</p><p>Seorang instruktur berdiri di depan Kashiki. Wajahnya datar. Matanya tajam, seperti sudah melihat ratusan kematian dan tidak terkesan oleh satu lagi. “Kau tahu kenapa kau masih berdiri?” tanyanya. Kashiki menggeleng. “Karena kau tidak memberi ruang.”</p><p>Itu saja. Tidak ada pujian. Tidak ada ancaman. Sejak hari itu, posisinya tidak berubah. Ia selalu di depan.</p><p>Di tenda-tenda Keshik, namanya dibicarakan dengan nada setengah mengejek. “Keshik tanpa busur.” “Prajurit setengah jadi.” “Kalau perang jarak jauh, dia mati duluan.”</p><p>Kashiki mendengar semuanya. Ia tidak membalas. Ia membersihkan tombaknya setiap malam, mengasah mata besi hingga pantulannya cukup tajam untuk melihat wajah sendiri. Ia tidur lebih awal. Bangun lebih awal. Tidak ada yang istimewa dari kebiasaannya. Ia tahu kelemahannya. Ia juga tahu kelebihannya.</p><p>Suatu hari, latihan berubah menjadi duel. Lingkaran dibentuk. Tanah diratakan. Dua prajurit maju. Pedang beradu cepat. Logam bertemu logam. Darah mengalir. Sorak kecil terdengar—tidak berlebihan, tapi cukup untuk menunjukkan persetujuan. Lalu nama Kashiki dipanggil.</p><p>Ia melangkah masuk tanpa ekspresi. Lawannya membawa pedang dan belati. Tubuhnya ringan. Gerakannya cepat. Matanya penuh percaya diri. “Jangan lama-lama,” kata seseorang dari lingkaran.</p><p>Duel dimulai. Lawan menyerang duluan, cepat dan bertubi-tubi. Kashiki mundur setengah langkah, menahan dengan gagang tombak, memutar pergelangan, lalu menusuk lurus ke depan. Tidak ada hiasan. Tidak ada teriakan. Tidak ada keraguan.</p><p>Ujung tombak berhenti tepat di tenggorokan lawannya. Hening. Napas lawan terhenti. Matanya melebar. Satu langkah lagi, dan semuanya selesai.</p><p>Instruktur mengangkat tangan. Duel selesai. Tidak ada sorak. Tidak ada ejekan. Sejak hari itu, tawa-tawa berhenti. Orang-orang masih tidak menyukainya. Tapi mereka menjaga jarak.</p><p>Julukan itu tetap ada—namun nadanya berubah. Keshik tanpa busur. Yang maju paling depan. Yang tidak pernah ragu.</p><p>Malam hari, Kashiki berdiri di luar tenda. Langit terbuka luas. Tidak ada panah di sana. Hanya bintang-bintang yang diam, seolah tidak peduli pada perang di bawahnya. Seorang prajurit tua berdiri di sampingnya. Orang yang pertama kali menyebut julukan itu.</p><p>“Kau akan dibenci,” katanya pelan. Kashiki tidak menoleh. “Dan kau akan dibutuhkan.”</p><p>Kashiki mengangguk. Beberapa minggu kemudian, perintah besar datang. Kapal disiapkan. Kuda dipilih. Senjata diasah. Nama sebuah negeri disebut berulang kali. Pulau-pulau di timur. Negeri yang bertarung dari dekat. Negeri yang tidak mundur.</p><h2>Jepang</h2><p>Kashiki menggenggam tombaknya lebih erat. Jika dunia memaksanya bertarung, ia akan bertarung sedekat mungkin.</p>`,
+                        btnNext: "Buka Bab IV"
+                    },
+                    {
+                        musicId: 'audio-bab-4',
+                        title: "BAB IV: Orang yang Tidak Kembali",
+                        content: `<p><span class="drop-cap">L</span>aut tidak tenang hari itu. Gelombang menghantam lambung kapal Mongol tanpa ampun. Angin asin menusuk hidung, dan langit menggantung rendah, kelabu seperti menahan sesuatu.</p><p>Kashiki berdiri di geladak, tombaknya di tangan, matanya tertuju ke garis pantai yang perlahan muncul.</p><h2>Jepang</h2><p>Negeri yang katanya keras kepala. Negeri yang tidak mau tunduk.</p><p>Panah pertama dilepaskan bahkan sebelum kapal benar-benar merapat. Siulan tajam memecah udara. Tubuh Kashiki menegang seketika, napasnya tersendat, tapi kakinya tetap melangkah maju.</p><p>“Turun!” teriak seseorang.</p><p>Pantai berubah menjadi kekacauan. Prajurit meloncat ke air, sebagian jatuh sebelum sempat menginjak pasir. Panah datang dari balik kabut, dari bukit, dari tempat yang tidak terlihat. Teriakan bercampur dengan suara besi beradu.</p><p>Kashiki mendarat di pasir basah dan langsung maju. Ia tidak melihat ke langit. Ia tidak mencari arah panah. Ia berlari lurus ke depan.</p><p>Tombaknya bergerak cepat—menepis, menusuk, mendorong. Jarak dekat. Nafas lawan terasa. Darah hangat mengenai lengannya. Semua terasa nyata, terlalu nyata.</p><p>Di tengah kekacauan itu, ia melihat sosok yang dikenalnya. Prajurit yang memberinya makan pertama kali. Yang mengajarinya berdiri. Yang memberinya nama. Ia bertarung dengan tenang, seperti biasa. Tidak tergesa. Tidak ragu.</p><p>“Kashiki!” teriaknya.</p><p>Untuk sesaat, dunia menyempit hanya pada mereka berdua. Lalu suara itu terdengar. Siulan panah. Lebih dekat dari sebelumnya.</p><p>Kashiki menoleh. Terlambat.</p><p>Panah itu menembus bahu prajurit itu dari samping. Tubuhnya terhuyung, lututnya menghantam pasir. Ia tidak berteriak. Ia hanya terdiam, seperti tidak percaya. Kashiki berlari ke arahnya. Ia menjatuhkan dua musuh tanpa sadar, hanya refleks. Tombaknya berlumur darah, tapi ia tidak merasakannya.</p><p>Ia berlutut di samping pria itu. “Bangun,” katanya. Suaranya pecah. “Kita harus maju.”</p><p>Prajurit itu tersenyum kecil. Wajahnya pucat. “Selalu… terlalu dekat,” katanya pelan.</p><p>Darah merembes di antara jarinya. Panah itu tertancap dalam. Terlalu dalam. Kashiki menekan lukanya dengan tangan gemetar.</p><p>“Jangan mati,” katanya. Itu bukan perintah. Itu permohonan.</p><p>Prajurit itu menggeleng lemah. “Kau sudah bisa sendiri.”</p><p>Tangannya terangkat, menyentuh bahu Kashiki—gerakan yang pernah ia lakukan ratusan kali saat latihan. “Jangan benci dunia ini,” katanya. “Gunakan kebencianmu… untuk bertahan.”</p><p>Matanya menutup perlahan. Tidak ada kata terakhir. Tidak ada pesan panjang. Tubuh itu menjadi berat di pelukan Kashiki.</p><p>Panah terus beterbangan. Perang belum selesai. Tapi bagi Kashiki, semuanya berhenti. Ia tidak menangis. Ia berdiri perlahan, mencabut tombaknya dari pasir. Untuk pertama kalinya, Kashiki menatap ke arah langit—ke arah datangnya panah-panah itu.</p><p>Dan untuk pertama kalinya, kebenciannya terasa utuh. Ia maju kembali ke medan perang tanpa suara. Tidak ada teriakan. Tidak ada amarah yang meledak. Hanya gerakan yang lebih cepat. Lebih dekat. Lebih mematikan.</p><p>Di pantai itu, Kashiki kehilangan satu-satunya orang yang memanggilnya dengan namanya.</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">Dan sejak hari itu, setiap langkahnya di medan perang selalu terasa lebih sepi.</p>`,
+                        btnNext: "Buka Bab V"
+                    },
+                    {
+                        musicId: 'audio-bab-5',
+                        title: "BAB V: Api di Atas Laut Timur",
+                        content: `<p><span class="drop-cap">T</span>sushima terbakar.</p><p>Langit malam tidak lagi hitam, melainkan merah pekat, memantulkan api yang melahap desa-desa dan benteng kayu. Udara berbau daging hangus, belerang, dan kemenangan yang amis. Di antara reruntuhan yang masih membara, Kashiki berdiri. Napasnya teratur, kontras dengan kekacauan di sekelilingnya. Tombaknya, yang kini tak lagi sekadar kayu dan besi, melainkan perpanjangan dari jiwanya yang retak, meneteskan darah kental ke tanah asing itu.</p><p>Mereka menang. Pasukan Mongol, gelombang yang tak terbendung itu, telah menyapu para samurai yang bangga akan kehormatan mereka. Pedang-pedang katana yang indah patah di bawah hantaman gada dan tombak kasar. Baju zirah mereka yang rumit ditembus tanpa ampun.</p><p>Namun bagi Kashiki, kemenangan ini terasa hambar. Seperti meminum air laut; hanya menambah dahaga, bukan memuaskannya.</p><p>Ia berjalan melewati tumpukan mayat. Teman dan lawan bercampur dalam satu gundukan kematian yang demokratis. Tidak ada jenderal atau prajurit rendahan di sini, hanya daging yang diam.</p><p>“Kashiki.”</p><p>Suara seorang perwira Keshik memecah lamunannya. Kashiki menoleh pelan. Wajahnya datar, tertutup debu perang dan cipratan darah kering.</p><p>“Khan memanggil armada pulang,” kata perwira itu. “Tsushima sudah habis. Kita tidak akan tinggal untuk mengubur mereka.”</p><p>Kashiki mengangguk. Ia tidak butuh alasan. Ia hanya butuh perintah.</p><hr style="border: 0; border-top: 1px solid #333; margin: 30px 0;"><p>Perjalanan kembali ke daratan utama adalah masa yang sunyi. Di atas kapal yang berderit dihantam ombak, Kashiki sering duduk di tepian, menatap cakrawala yang tak berujung. Bayangan prajurit tua yang memberinya nama—yang mati di pantai itu—terus menghantuinya. Bukan sebagai hantu yang menakutkan, tapi sebagai lubang di dadanya yang menganga lebar.</p><p>“Gunakan kebencianmu untuk bertahan,” bisik angin laut, meniru suara gurunya.</p><p>Dan Kashiki melakukannya. Ia mengasah kebencian itu setiap hari. Ia membenci jarak. Ia membenci panah. Ia membenci langit yang membiarkan besi jatuh menimpa manusia. Kebencian itu membuatnya tajam. Membuatnya waspada. Di antara para prajurit Keshik yang lain, ia menjadi legenda bisu. <em>Sang Penakluk Jarak Dekat. Hantu Tanpa Busur.</em></p><p>Sesampainya di kamp besar Mongol, tidak ada istirahat panjang. Udara di sana dingin, kering, dan penuh dengan ambisi yang menyesakkan. Kublai Khan tidak pernah puas. Dunia terlalu luas untuk dibiarkan bebas.</p><p>Malam itu, di dalam tenda komando yang diterangi obor-obor besar, peta dunia dibentangkan di atas meja kulit. Peta itu penuh dengan garis-garis penaklukan. Namun, jari sang Jenderal tidak menunjuk ke Barat, tidak juga kembali ke Timur.</p><p>Jari itu turun ke Bawah.</p><p>Ke Selatan. Melewati lautan yang ganas, menuju kepulauan yang digambarkan dengan tinta emas dan hijau pekat.</p><p>“Timur keras kepala,” suara Jenderal menggema, berat dan parau. “Tapi Selatan... Selatan adalah kunci. Rempah. Emas. Jalur laut.”</p><p>Matanya menyapu barisan perwira elit, lalu berhenti pada komandan Keshik. “Siapkan unit khusus. Kita akan mengirim pesan ke raja-raja di sana. Jika mereka tidak tunduk, kita akan membakar hutan mereka seperti kita membakar Tsushima.”</p><p>Nama daerah itu disebut dengan aksen yang asing dan kaku.</p><h2>Sriwijaya. Jawadwipa.</h2><p>Kashiki, yang berdiri di bayang-bayang tiang tenda, merasakan sesuatu bergetar di lantai tanah. Itu bukan gempa. Itu adalah takdir yang bergeser.</p><p>Setelah pertemuan, komandan Keshik menghampirinya. “Kau dengar itu, Tombak?”</p><p>Kashiki menatap lurus. “Saya dengar.”</p><p>“Mereka bilang orang-orang Selatan bertarung berbeda. Mereka tidak memakai baju besi tebal. Mereka cepat. Mereka menggunakan racun dan keris yang berlekuk seperti ular. Hutan mereka lembab, penuh penyakit dan hantu.” Komandan itu menyeringai tipis. “Tempat yang sempurna untuk mati.”</p><p>“Atau tempat yang sempurna untuk membunuh,” jawab Kashiki datar.</p><p>“Bagus. Siapkan dirimu. Besok kita bergerak ke pelabuhan Quanzhou. Kapal-kapal besar sudah menunggu. Kita akan berlayar lebih jauh dari siapa pun nenek moyang kita pernah bayangkan.”</p><p>Malam itu, Kashiki tidak tidur. Ia duduk di luar tenda, mengasah ujung tombaknya hingga berkilau di bawah sinar bulan pucat. Ia menatap ke Selatan. Bintang-bintang di sana tampak berbeda, susunannya asing.</p><p>Ia tidak tahu apa yang menantinya di tanah bernama Sriwijaya atau Jawa itu. Ia tidak peduli pada emas atau rempah. Ia hanya tahu satu hal: perang tidak pernah berubah. Hanya tanah pijakannya yang berganti.</p><p>Dan di mana pun kakinya berpijak, selama ia memegang tombak ini, ia tidak akan membiarkan jarak memisahkannya dari kematian musuhnya.</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">Angin selatan berhembus, membawa aroma garam dan darah yang belum tumpah.</p>`,
+                        btnNext: "Buka Bab VI"
+                    },
+                    {
+                        musicId: 'audio-bab-6',
+                        title: "BAB VI: Wajah yang Hilang di Banjar",
+                        content: `<p><span class="drop-cap">H</span>utan itu bernapas. Tidak seperti padang rumput Mongol yang terbuka jujur, tanah Selatan ini licik. Pohon-pohon raksasa menjulur ke langit seperti jari-jari mayat yang membengkak, menutupi matahari, menjebak kelembapan yang mencekik tenggorokan.</p><p>Armada Mongol tidak dikalahkan oleh pedang raja Jawa, melainkan oleh laut dan tipu daya. Kapal-kapal besar yang membanggakan itu pecah seperti mainan di atas karang-karang tajam Selat Karimata. Kashiki ingat suara kayu yang terbelah—suara yang lebih mengerikan daripada tulang yang patah. Lalu gelap. Lalu air asin yang memaksa masuk ke paru-paru.</p><p>Ketika ia membuka mata, ia tidak berada di surga leluhur. Ia terdampar di pasir putih yang panas, dikelilingi oleh bangkai kapal dan bangkai manusia.</p><p>“Banjar,” bisik angin panas itu.</p><p>Ia sendirian. Tidak ada Keshik. Tidak ada komandan. Tombaknya patah menjadi dua, menyisakan batang pendek dengan mata besi yang masih tajam. Ia memungutnya. Senjata setengah jadi untuk prajurit setengah mati.</p><p>Sebelum ia sempat berdiri tegak, mereka datang.</p><p>Bukan pasukan berseragam. Mereka muncul dari balik pepohonan bakau, tanpa suara, seolah mereka adalah bagian dari bayangan itu sendiri. Kulit mereka gelap terbakar matahari, tubuh mereka dilukis dengan kapur putih membentuk pola tulang belulang. Tapi yang membuat darah Kashiki membeku adalah wajah mereka.</p><p>Mereka tidak memiliki wajah.</p><p>Topeng kayu ukiran kasar menutupi rupa mereka. Topeng dengan seringai iblis, mata melotot, dan taring panjang. Pasukan Hantu Banjar.</p><p>“<em>Mongol...</em>” desis salah satu dari mereka. Bahasa itu asing, tapi nadanya universal: kebencian.</p><p>Serangan itu tidak seperti hujan panah di Jepang. Ini lebih intim. Mereka menyerang serentak dengan senjata aneh—parang pendek yang berat (Mandau) dan pisau berlekuk yang berkilau kehijauan karena racun. Kashiki bergerak. Tubuhnya yang lelah dipaksa mengingat tarian kematian.</p><p>Ia menangkis sabetan Mandau dengan sisa tombaknya, memutar tubuh, dan menusuk leher penyerang pertama. Darah menyembur ke pasir.</p><p>Lima lagi maju.</p><p>Kashiki tidak mundur. Di tanah asing ini, mundur berarti mati dimakan hutan. Ia meraung—bukan teriakan perang Mongol, tapi raungan binatang yang terpojok. Ia membuang sisa gagang tombaknya dan mencabut pedang lengkung dari mayat musuhnya.</p><p>Pertarungan itu brutal. Tidak ada formasi. Tidak ada kehormatan. Hanya lumpur, darah, dan napas yang memburu. Kashiki menerima sayatan di lengan, tendangan di rusuk, tapi ia terus memotong. Satu per satu topeng itu jatuh ke pasir, menampakkan wajah manusia biasa yang mati dalam ketakutan.</p><p>Hingga tersisa satu. Pemimpin mereka.</p><p>Topengnya berbeda. Merah darah dengan ukiran naga sungai. Ia bergerak cepat, seolah kakinya tidak menyentuh tanah. Ia tidak menyerang, ia menari, menunggu Kashiki lengah.</p><p>“Kau kuat untuk ukuran orang asing,” kata pemimpin itu dalam bahasa Melayu pasar yang patah-patah. “Tapi hutan ini butuh pupuk.”</p><p>Kashiki tidak menjawab. Ia lelah. Ia tidak ingin lagi menjadi prajurit Khan. Ia tidak ingin lagi menjadi 'Tombak'. Di detik itu, ia menyadari sesuatu: seragam Mongolnya adalah target. Identitasnya adalah kutukan.</p><p>Ia menjatuhkan pedangnya.</p><p>Pemimpin Banjar itu tertegun sejenak, mengira lawannya menyerah. Itu adalah kesalahan terakhirnya.</p><p>Kashiki melesat maju, menerjang dengan tangan kosong, menepis tebasan parang dengan mengorbankan kulit lengannya, dan menghantamkan telapak tangannya tepat ke dada lawan. Jantung pemimpin itu berhenti seketika oleh hantaman tenaga dalam yang diajarkan prajurit tua dulu.</p><p>Hening kembali turun di pantai itu. Hanya suara ombak dan napas Kashiki yang tersengal.</p><p>Kashiki berdiri di atas mayat pemimpin itu. Ia menatap topeng merah yang menatap balik padanya. Kosong. Menakutkan. Tanpa emosi.</p><p>Perlahan, ia membungkuk. Ia melepaskan topeng itu dari wajah mayat.</p><p>Ia melihat pantulan wajahnya sendiri di genangan darah—wajah Kashiki sang prajurit Mongol, wajah anak yatim yang ketakutan, wajah yang lelah oleh perintah orang lain.</p><p>“Tidak ada lagi,” bisiknya.</p><p>Ia mengangkat topeng itu dan memasangnya ke wajahnya sendiri. Kayu dingin menyentuh kulitnya yang berkeringat. Dunia menyempit melalui dua lubang mata. Bau kayu tua dan darah mengisi hidungnya.</p><p>Di balik topeng itu, Kashiki sang Keshik mati. Hanyut dibawa ombak ke laut Jawa.</p><p>Yang berdiri sekarang bukan lagi prajurit. Ia adalah bayangan. Ia adalah kematian tanpa nama.</p><p>Ia memungut Mandau pemimpin itu, menyarungkannya di pinggang. Ia tidak menoleh ke arah bangkai kapal Mongol. Ia berbalik, menghadap ke hutan gelap yang menunggunya.</p><p>Tujuannya bukan lagi kemenangan Khan. Tujuannya ada di pulau seberang, di jantung kerajaan yang telah menenggelamkan armadanya. Ada sesuatu di sana. Sebuah peta. Sebuah jalan pulang—atau jalan menuju akhir dunia.</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">Sang Pembunuh (Assassin) telah lahir dari rahim laut dan darah.</p>`,
+                        btnNext: "Buka Bab Terakhir"
+                    },
+                    {
+                        musicId: 'audio-bab-7',
+                        title: "BAB VII: Gerbang Antara Dua Dunia",
+                        content: `<p><span class="drop-cap">J</span>awa bukanlah tempat untuk orang yang terburu-buru.</p><p>Di sini, waktu mengalir seperti sungai yang tenang namun menghanyutkan. Kashiki, yang kini hanyalah sesosok hantu bertopeng merah di balik bayang-bayang keraton, telah belajar untuk tidak melawan arus. Tujuannya satu: Peta Laut Utara. Sebuah gulungan kuno yang konon dicuri dari pedagang Persia, tersimpan di jantung istana Singhasari. Peta itu adalah kunci untuk pulang. Pulang ke padang rumput. Pulang untuk mati di tanah kelahirannya.</p><p>Malam itu, bulan tertutup awan. Sempurna. Kashiki melompati dinding batu setinggi tiga tombak tanpa suara. Penjaga-penjaga Jawa berdiri patung dengan tombak berujung emas, tidak menyadari maut yang melintas di atas kepala mereka.</p><p>Ia menyusup ke Paviliun Teratai. Aroma dupa cendana menusuk hidung—aroma yang menyembunyikan bau besi. Di sana, di atas meja jati, gulungan itu tergeletak. Tangan Kashiki gemetar saat menyentuhnya. Bukan karena takut, tapi karena rindu.</p><p>Namun, Jawa tidak melepaskan miliknya dengan mudah.</p><p>“Kau pikir kau hantu?” sebuah suara halus terdengar dari sudut ruangan.</p><p>Kashiki berbalik. Seorang senopati tua, tanpa baju zirah, hanya mengenakan kain batik dan memegang keris lurus, berdiri di sana. Matanya lebih tajam dari mata elang Mongol. “Tapi hantu tidak meninggalkan jejak kaki di lantai debu,” lanjut orang tua itu.</p><p>Pertarungan tidak terelakkan. Kashiki menghunus Mandaunya. Senopati itu mencabut kerisnya.</p><p>Bukan pertarungan denting besi yang bising. Ini adalah tarian sunyi. Keris itu bergerak seperti ular, mematuk, membelit. Kashiki, dengan gaya brutal dan langsung, terdesak oleh kehalusan teknik lawan. Satu sabetan. Dua. Kashiki berhasil melukai bahu lawan, tapi sebuah tusukan dingin menembus rusuk kirinya.</p><p>Racun. Ia merasakannya seketika. Api menjalar di pembuluh darahnya.</p><p>Kashiki meraung tertahan, menendang obor hingga ruangan terbakar. Dalam kekacauan asap, ia menyambar peta itu dan melompat keluar jendela. “Tangkap penyusup!” Teriakan memecah malam. Gong dipukul. Ribuan langkah kaki bergemuruh.</p><p>Kashiki berlari. Bukan ke arah pelabuhan—itu sudah dijaga. Ia berlari ke arah hutan larangan di lereng gunung. Darah menetes deras, meninggalkan jejak merah di tanah lembab. Pandangannya mulai kabur. Racun itu bekerja cepat, memakan kesadarannya seperti rayap memakan kayu.</p><p>“Ibu...” bisiknya. Wajah orang tuanya, wajah prajurit tua itu, semuanya berputar.</p><p>Di depannya, sebuah mulut goa menganga. Gelap, purba, dan mengeluarkan aura yang membuat bulu kuduk berdiri. Penduduk setempat bilang ini adalah gerbang menuju dunia roh. Suara anjing pelacak dan teriakan prajurit semakin dekat. Panah-panah mulai berdesing melewati telinganya.</p><p>Kashiki tidak punya pilihan. Ia menyeret tubuhnya masuk ke dalam goa.</p><p>Di dalam, tidak ada kegelapan. Justru ada cahaya. Cahaya ungu temaram yang tidak bersumber dari api. Dinding goa berdenyut. Kashiki jatuh berlutut. Peta di tangannya terlepas, bergulir menjauh. “Apakah ini kematian?” pikirnya.</p><p>Tapi rasa sakitnya menghilang. Suara pengejaran di luar meredup, digantikan oleh dengungan rendah yang menyakitkan telinga namun menenangkan jiwa. Lantai batu di bawahnya terasa menghilang.</p><p>Kashiki, sang Tombak yang Menolak Langit, sang Keshik Tanpa Busur, sang Pembunuh Bertopeng Merah, menutup matanya di tanah Jawa.</p><p style="text-align:center; font-style:italic; font-size:1.2rem; color:var(--accent-color);">Ia terjatuh ke dalam ketiadaan.</p>`,
+                        btnNext: "Buka Epilog"
+                    },
+                    {
+                        musicId: 'audio-epilog',
+                        title: "EPILOG: Borgarheim",
+                        content: `<p><span class="drop-cap">R</span>asa sakit itu hilang. Bukan karena sembuh, tapi karena tubuhnya sudah menyerah.</p><p>Kashiki terbaring di tanah yang bukan tanah. Dingin, keras, seperti kaca hitam yang membentang tanpa ujung. Langit di atasnya bukan langit Jawa, bukan langit Mongol. Warnanya ungu pucat, berputar pelan seperti minyak di atas air.</p><p>Ia tidak bisa menggerakkan jarinya. Napasnya dangkal, satu per satu, menghitung detik terakhir.</p><p>Di sudut matanya, sebuah bayangan mendekat.</p><p>Bukan malaikat pencabut nyawa. Bukan leluhur.</p><p>Sosok itu berdiri di sampingnya. Jubahnya terbuat dari kain yang tampak seperti kabut yang ditenun. Wajahnya... Kashiki tidak bisa memastikannya. Terlalu halus untuk disebut laki-laki, terlalu tajam untuk disebut perempuan. Kulitnya pucat seperti pualam, dan telinganya sedikit meruncing.</p><p>Mata sosok itu bersinar redup, menatap Kashiki bukan dengan belas kasihan, tapi dengan rasa ingin tahu yang dingin.</p><p>Sosok itu membungkuk sedikit, suaranya tidak keluar dari mulut, melainkan bergema langsung di dalam kepala Kashiki, jernih tanpa suara.</p><p style="text-align:center; font-size:1.5rem; letter-spacing:2px; margin-top:30px; color:var(--accent-color);">"Selamat datang di Borgarheim."</p><br><p>Mata Kashiki tertutup.</p><p>Dunia lama telah berakhir.</p><p style="text-align:center; font-style:italic;">Dan permainan baru baru saja dimulai.</p>`,
+                        btnNext: "Lanjut ke Takdirmu"
+                    },
+                    {
+                        musicId: 'audio-epilog',
+                        title: "Mau kah kau cannon dengan cerita ini?",
+                        content: `
+                            <p>Kisah Kashiki di dunia lama telah usai, namun jiwanya akan bangkit di Borgarheim. Apakah kau bersedia membiarkan takdirmu terikat dengan sejarah baru ini?</p>
+                            <div class="story-form" id="canon-form">
+                                <div class="form-group">
+                                    <label class="form-label">Nama Kamu</label>
+                                    <input type="text" class="form-input" id="input-name" placeholder="Siapa namamu di dunia nyata?">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Nama Karakter</label>
+                                    <input type="text" class="form-input" id="input-char-name" placeholder="Nama karaktermu di dunia ini">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Sifat / Kepribadian</label>
+                                    <input type="text" class="form-input" id="input-traits" placeholder="Misal: Pemberani, Licik, Melankolis...">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Jenis Karakter</label>
+                                    <select class="form-select" id="input-type">
+                                        <option value="" disabled selected>-- Pilih Ras --</option>
+                                        <option value="Manusia">Manusia</option>
+                                        <option value="Elf">Elf</option>
+                                        <option value="Penyihir">Penyihir</option>
+                                        <option value="Prajurit">Prajurit</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Pertemuan Kita</label>
+                                    <textarea class="form-textarea" id="input-story" rows="4" placeholder="Ceritakan singkat bagaimana karaktermu bertemu dengan Kashiki..."></textarea>
+                                </div>
+                            </div>
+                        `,
+                        btnNext: "Kirim Takdir Ini"
+                    }
+                ]
+            },
+            en: {
+                intro: { title: "KASHIKI — THE SPEAR THAT DENIES THE SKY", btn: "ENTER THE MEMORY", notice: "🎧 Move mouse for ambience • Use headphones" },
+                pages: [
+                    { musicId: 'audio-bab-1', title: "PROLOGUE: The Name That Remains", content: "<p>The world gave the child no time to weep...</p>", btnNext: "Open Chapter I" },
+                    // Placeholder for EN content
+                ]
+            }
+        };
+
+        // --- STATE VARIABLES ---
+        let currentLang = 'id';
+        let currentPageIndex = 0;
+        let isStarted = false;
+        let introMusicPlayed = false;
+        let currentAudio = null;
+
+        // --- DOM ELEMENTS ---
+        const introLayer = document.getElementById('intro-layer');
+        const mainContainer = document.getElementById('main-container');
+        const storyContent = document.getElementById('story-content');
+        const btnEnter = document.getElementById('btn-enter');
+        const btnNext = document.getElementById('btn-next');
+        const btnBack = document.getElementById('btn-back');
+        const musicToggle = document.getElementById('music-toggle');
+        const commentPanel = document.getElementById('comment-panel');
+        const storyPanel = document.getElementById('story-panel');
+        
+        const introTitle = document.getElementById('intro-title-text');
+        const introHeadphone = document.getElementById('headphone-text');
+
+        // AUDIO Elements Reference
+        const audioIntro = document.getElementById('audio-intro');
+
+        // --- FUNCTIONS ---
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            
+            document.getElementById('lang-id').classList.toggle('active', lang === 'id');
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+
+            const data = storyData[lang];
+
+            if (!isStarted) {
+                introTitle.textContent = data.intro.title;
+                btnEnter.textContent = data.intro.btn;
+                introHeadphone.innerHTML = data.intro.notice.replace('•', '<br>');
+            }
+
+            btnBack.textContent = lang === 'id' ? "← KEMBALI" : "← BACK";
+
+            if (isStarted) {
+                renderPage(currentPageIndex);
+            }
+        }
+
+        // --- MUSIC TRANSITION SYSTEM ---
+        function playMusic(targetAudioId) {
+            const targetAudio = document.getElementById(targetAudioId);
+            
+            if (currentAudio === targetAudio) return;
+
+            // Fade Out Current
+            if (currentAudio) {
+                const oldAudio = currentAudio; 
+                let vol = oldAudio.volume;
+                const fadeOut = setInterval(() => {
+                    if (vol > 0.05) {
+                        vol -= 0.05;
+                        oldAudio.volume = vol;
+                    } else {
+                        clearInterval(fadeOut);
+                        oldAudio.pause();
+                        oldAudio.currentTime = 0; 
+                    }
+                }, 100);
+            }
+
+            // Fade In New
+            if (targetAudio) {
+                targetAudio.volume = 0;
+                targetAudio.play().catch(e => console.log("Audio play error:", e));
+                currentAudio = targetAudio; 
+                
+                let vol = 0;
+                const fadeIn = setInterval(() => {
+                    if (vol < 0.4) { 
+                        vol += 0.05;
+                        targetAudio.volume = vol;
+                    } else {
+                        clearInterval(fadeIn);
+                    }
+                }, 100);
+            }
+        }
+
+        function renderPage(index) {
+            let dataPage = storyData[currentLang].pages[index];
+            if (!dataPage) { 
+                dataPage = storyData['id'].pages[index]; // Fallback if EN missing
+            }
+
+            const musicId = dataPage.musicId || 'audio-bab-1';
+            
+            playMusic(musicId);
+
+            mainContainer.classList.add('fade-out');
+
+            if (index === 0) {
+                btnBack.style.display = 'none';
+            } else {
+                btnBack.style.display = 'inline-block';
+            }
+
+            setTimeout(() => {
+                let html = `<h1>${dataPage.title}</h1>${dataPage.content}`;
+                storyContent.innerHTML = html;
+                btnNext.textContent = dataPage.btnNext;
+                btnNext.disabled = false;
+                
+                // Scroll Story Panel to top
+                storyPanel.scrollTop = 0;
+
+                mainContainer.classList.remove('fade-out');
+            }, 500);
+        }
+
+        function prevPage() {
+            if (currentPageIndex > 0) {
+                currentPageIndex--;
+                renderPage(currentPageIndex);
+            }
+        }
+
+        function nextPage() {
+            const totalPages = storyData['id'].pages.length;
+            
+            if (currentPageIndex === totalPages - 1) {
+                // Form Logic
+                const inputRealName = document.getElementById('input-name')?.value;
+                const inputCharName = document.getElementById('input-char-name')?.value;
+                const inputTraits = document.getElementById('input-traits')?.value;
+                const inputType = document.getElementById('input-type')?.value;
+                const inputStory = document.getElementById('input-story')?.value;
+
+                if (!inputCharName || !inputRealName) {
+                    alert(currentLang === 'id' ? "Mohon isi setidaknya Nama Asli dan Nama Karakter." : "Please enter at least your Real Name and Character Name.");
+                    return;
+                }
+
+                if (!GOOGLE_SCRIPT_URL) {
+                    alert("ERROR: Mohon masukkan URL Google Script Anda di kode.");
+                    return;
+                }
+
+                const originalText = btnNext.textContent;
+                btnNext.textContent = currentLang === 'id' ? "Sedang Mengirim..." : "Sending...";
+                btnNext.disabled = true;
+
+                const formData = new FormData();
+                formData.append('action', 'story');
+                formData.append('Nama Asli', inputRealName);
+                formData.append('Nama Karakter', inputCharName);
+                formData.append('Sifat', inputTraits);
+                formData.append('Ras', inputType);
+                formData.append('Cerita', inputStory);
+
+                fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: formData })
+                    .then(response => {
+                        const msg = currentLang === 'id' 
+                            ? `Terima kasih, ${inputCharName}. Takdirmu telah tercatat.` 
+                            : `Thank you, ${inputCharName}. Your destiny has been recorded.`;
+                        alert(msg);
+                        location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error!', error.message);
+                        alert(currentLang === 'id' ? "Gagal mengirim data." : "Failed to send data.");
+                        btnNext.textContent = originalText;
+                        btnNext.disabled = false;
+                    });
+                return;
+            }
+
+            if (currentPageIndex < totalPages - 1) {
+                currentPageIndex++;
+                renderPage(currentPageIndex);
+            }
+        }
+
+        // --- COMMENT SYSTEM ---
+        function loadComments() {
+            if (!GOOGLE_SCRIPT_URL) {
+                document.getElementById('comments-loading').textContent = "Database belum terhubung.";
+                return;
+            }
+
+            fetch(GOOGLE_SCRIPT_URL + "?action=comments")
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('comment-list-container');
+                    list.innerHTML = ""; 
+
+                    if (data.result === 'success' && data.data.length > 0) {
+                        data.data.forEach(comm => {
+                            const div = document.createElement('div');
+                            div.className = 'comment-item';
+                            // Simple sanitization
+                            const safeName = comm.nama ? comm.nama.replace(/</g, "&lt;") : "Tanpa Nama";
+                            const safeText = comm.komentar ? comm.komentar.replace(/</g, "&lt;") : "";
+                            div.innerHTML = `<div class="comment-author">${safeName}</div><div class="comment-text">"${safeText}"</div>`;
+                            list.appendChild(div);
+                        });
+                    } else {
+                        list.innerHTML = `<div class="loading-text">Belum ada jejak. Jadilah yang pertama.</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error("Gagal memuat komentar:", error);
+                    document.getElementById('comments-loading').textContent = "Gagal memuat jejak.";
+                });
+        }
+
+        function submitComment() {
+            const name = document.getElementById('comm-name').value || "Tanpa Nama";
+            const text = document.getElementById('comm-text').value;
+            const btn = document.getElementById('btn-submit-comment');
+
+            if(!text) {
+                alert("Mohon isi pesan jejakmu.");
+                return;
+            }
+            
+            if (!GOOGLE_SCRIPT_URL) {
+                alert("Database belum terhubung.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Mengukir...";
+
+            const formData = new FormData();
+            formData.append('action', 'comment');
+            formData.append('Nama', name);
+            formData.append('Komentar', text);
+
+            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: formData })
+                .then(response => {
+                    // Update UI locally immediately for feedback
+                    const list = document.getElementById('comment-list-container');
+                    
+                    // Remove "Belum ada jejak" if present
+                    if(list.querySelector('.loading-text')) {
+                        list.innerHTML = "";
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = 'comment-item';
+                    div.innerHTML = `<div class="comment-author">${name}</div><div class="comment-text">"${text}"</div>`;
+                    list.insertBefore(div, list.firstChild);
+                    
+                    document.getElementById('comm-text').value = '';
+                    btn.disabled = false;
+                    btn.textContent = "KIRIM JEJAK";
+                    
+                    div.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Error!', error.message);
+                    alert("Gagal mengirim jejak.");
+                    btn.disabled = false;
+                    btn.textContent = "KIRIM JEJAK";
+                });
+        }
+
+        // --- INTRO & EVENTS ---
+
+        function tryStartIntro() {
+            if (!introMusicPlayed && !isStarted) {
+                audioIntro.volume = 0.3;
+                audioIntro.play().then(() => { introMusicPlayed = true; }).catch(e => {});
+            }
+        }
+
+        document.body.addEventListener('mousemove', tryStartIntro, { once: true });
+        document.body.addEventListener('click', tryStartIntro, { once: true });
+        document.body.addEventListener('touchstart', tryStartIntro, { once: true });
+
+        btnEnter.addEventListener('click', () => {
+            isStarted = true;
+            
+            // Fade out intro music manual
+            let vol = audioIntro.volume;
+            const fadeOut = setInterval(() => {
+                if (vol > 0.05) {
+                    vol -= 0.05;
+                    audioIntro.volume = vol;
+                } else {
+                    clearInterval(fadeOut);
+                    audioIntro.pause();
+                }
+            }, 100);
+
+            // Transition UI
+            introLayer.style.opacity = '0';
+            setTimeout(() => {
+                introLayer.style.display = 'none';
+                mainContainer.style.display = 'block';
+                commentPanel.style.display = 'flex'; // Show comments
+                
+                loadComments(); // Fetch comments
+                renderPage(0); // Start story
+
+                setTimeout(() => {
+                    mainContainer.style.opacity = '1';
+                    commentPanel.style.opacity = '1';
+                    musicToggle.style.display = 'flex';
+                }, 100);
+            }, 1500);
+        });
+
+        btnNext.addEventListener('click', nextPage);
+        btnBack.addEventListener('click', prevPage);
+
+        musicToggle.addEventListener('click', () => {
+            if (currentAudio && currentAudio.paused) {
+                currentAudio.play();
+                musicToggle.textContent = "🔊";
+                musicToggle.style.opacity = "1";
+            } else if (currentAudio) {
+                currentAudio.pause();
+                musicToggle.textContent = "🔇";
+                musicToggle.style.opacity = "0.5";
+            }
+        });
+
+    </script>
+</body>
+</html>
